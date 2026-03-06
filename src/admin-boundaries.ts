@@ -199,9 +199,12 @@ export const adminBoundaries = async (req: Request) => {
 
     console.log("Mapshaper processing complete.");
 
-    // Mapshaper usually puts features under the name of the input file
-    const feature_count =
-      topojson.objects["input.geojson"]?.geometries.length || 0;
+    // Mapshaper usually puts features under the name of the input file, but splits
+    // heterogeneous geometries into input1, input2, etc. We sum them up.
+    const feature_count = Object.values(topojson.objects).reduce(
+      (sum: number, obj: any) => sum + (obj.geometries?.length || 0),
+      0,
+    );
 
     // TopoJSON often includes a top-level bbox if requested or generated
     const bbox = topojson.bbox || [];

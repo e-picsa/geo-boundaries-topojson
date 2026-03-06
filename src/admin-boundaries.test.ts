@@ -1,36 +1,84 @@
-import { adminBoundaries } from './admin-boundaries.ts';
+import {
+  assertEquals,
+  assertExists,
+} from "https://deno.land/std@0.210.0/assert/mod.ts";
+import { adminBoundaries } from "./admin-boundaries.ts";
 
-const req = new Request('http://localhost/climate/admin-boundaries', {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json',
+Deno.test({
+  name: "adminBoundaries - Successfully generates TopoJSON for MW Admin Layer 2",
+  async fn() {
+    // Ensure we don't leak ops or resources in tests
+    const req = new Request("http://localhost/climate/admin-boundaries", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ country_code: "MW", admin_level: 2 }),
+      // Create an AbortSignal since our fetch depends on req.signal
+      signal: AbortSignal.timeout(30000),
+    });
+
+    const res = await adminBoundaries(req);
+
+    // Assert successful 200 OK
+    assertEquals(res.status, 200);
+
+    const data = await res.json();
+    console.log("Returned payload keys:", Object.keys(data));
+
+    // Check that we got TopoJSON back
+    assertExists(data.topojson);
+    assertEquals(data.country_code, "MW");
+    assertEquals(data.admin_level, 2);
+
+    // Verify properties we extract
+    const topojson = data.topojson;
+    assertEquals(topojson.type, "Topology");
+
+    // There should be at least one geometry feature exported
+    assertEquals(typeof data.feature_count, "number");
+    assertEquals(
+      data.feature_count > 0,
+      true,
+      "Feature count must be greater than zero",
+    );
+
+    assertEquals(typeof data.size_kb, "number");
   },
-  body: JSON.stringify({ country_code: 'ZW', admin_level: 2 }),
+  sanitizeOps: false,
+  sanitizeResources: false,
 });
 
-console.log('Sending request...');
-const res = await adminBoundaries(req);
-console.log('Status:', res.status);
-const text = await res.text();
-if (res.status === 200) {
-  console.log('Success! Output length:', text.length);
-  // parse and print top level keys
-  const data = JSON.parse(text);
-  console.log('Keys:', Object.keys(data));
-  if (data.objects) {
-    console.log('Objects:', Object.keys(data.objects));
-    for (const key of Object.keys(data.objects)) {
-      console.log(`\nObject: ${key}`);
-      const obj = data.objects[key];
-      console.log('Type:', obj.type);
-      if (obj.geometries && obj.geometries.length > 0) {
-        console.log(`Found ${obj.geometries.length} geometries`);
-        console.log('First geometry type:', obj.geometries[0].type);
-        console.log('First geometry properties:', obj.geometries[0].properties);
-        console.log('Second geometry properties:', obj.geometries[1]?.properties);
-      }
-    }
-  }
-} else {
-  console.error('Error:', text);
-}
+Deno.test({
+  name: "adminBoundaries - Fails validation with invalid country code",
+  async fn() {
+    const req = new Request("http://localhost/climate/admin-boundaries", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ country_code: "INVALID", admin_level: 2 }),
+    });
+
+    const res = await adminBoundaries(req);
+
+    // Should get a validation error (Bad Request)
+    assertEquals(res.status, 400);
+  },
+});
+
+Deno.test({
+  name: "adminBoundaries - Fails validation with invalid admin_level",
+  async fn() {
+    const req = new Request("http://localhost/climate/admin-boundaries", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ country_code: "MW", admin_level: 10 }), // 10 is invalid
+    });
+
+    const res = await adminBoundaries(req);
+    assertEquals(res.status, 400);
+  },
+});
