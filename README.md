@@ -52,7 +52,7 @@ Cloud Run will automatically build the image and deploy updates every time you p
 
 ## API Usage
 
-### `POST /climate/admin-boundaries`
+### `POST /`
 
 **Request Body:**
 

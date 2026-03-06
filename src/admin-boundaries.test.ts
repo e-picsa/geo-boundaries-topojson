@@ -8,7 +8,7 @@ Deno.test({
   name: "adminBoundaries - Successfully generates TopoJSON for MW Admin Layer 2",
   async fn() {
     // Ensure we don't leak ops or resources in tests
-    const req = new Request("http://localhost/climate/admin-boundaries", {
+    const req = new Request("http://localhost/", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -52,7 +52,7 @@ Deno.test({
 Deno.test({
   name: "adminBoundaries - Fails validation with invalid country code",
   async fn() {
-    const req = new Request("http://localhost/climate/admin-boundaries", {
+    const req = new Request("http://localhost/", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -70,7 +70,7 @@ Deno.test({
 Deno.test({
   name: "adminBoundaries - Fails validation with invalid admin_level",
   async fn() {
-    const req = new Request("http://localhost/climate/admin-boundaries", {
+    const req = new Request("http://localhost/", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
