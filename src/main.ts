@@ -15,7 +15,10 @@ if (Deno.build.os !== "windows") {
   Deno.addSignalListener("SIGTERM", shutdown);
 }
 
+const VERSION = 20260306
+
 Deno.serve({ port, signal: abortController.signal }, async (req: Request) => {
+  console.log('Serve api version '+VERSION)
   // handle cors pre-flight
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });

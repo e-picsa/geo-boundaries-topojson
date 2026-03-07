@@ -5,7 +5,7 @@ import { z } from "zod";
 import { ErrorResponse, JSONResponse } from "./utils/response.ts";
 import { validateBody } from "./utils/validation.ts";
 import { fetchWithRetry } from "./utils/fetch.ts";
-import { getFromCache, saveToCache } from "./utils/gcs.ts";
+import { getFromCache, saveToCache } from "./utils/google-storage.ts";
 
 /**
  * All overpass queries output with processing

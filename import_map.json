@@ -6,7 +6,6 @@
     "djwt": "https://deno.land/x/djwt@v2.8/mod.ts",
     "zod": "npm:zod@4/v4",
     "mapshaper": "npm:mapshaper",
-    "osmtogeojson": "npm:osmtogeojson",
-    "google-auth-library":"npm:google-auth-library"
+    "osmtogeojson": "npm:osmtogeojson"
   }
 }
