@@ -101,12 +101,14 @@ export const adminBoundaries = async (req: Request) => {
     const cacheKey = `overpass/v${CACHE_VERSION}/country=${country_code}/admin_level=${admin_level}.json`;
 
     let osmData: any = await getFromCache(cacheBucket, cacheKey);
+    let source: "cache" | "overpass" = "cache";
 
     if (osmData) {
       console.log(
         `Cache hit for ${country_code} admin level ${admin_level}. Skipping Overpass API.`,
       );
     } else {
+      source = "overpass";
       console.log(`Fetching Overpass data for ${country_code}...`);
 
       // Fetch data from Overpass API
@@ -265,6 +267,7 @@ export const adminBoundaries = async (req: Request) => {
       {
         country_code,
         admin_level,
+        source,
         size_kb,
         feature_count,
         bbox,
