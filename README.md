@@ -11,6 +11,36 @@ Initially designed as a Supabase Edge Function, this service has been refactored
 - Uses Mapshaper (`-clean`, `-simplify`, `-filter-islands`) to aggressively reduce file size and complexity.
 - Validates requests via Zod.
 
+## Administrative Levels (OSM)
+
+This service extracts boundary data from OpenStreetMap (OSM) using the `admin_level` tag. In OSM, the `admin_level` values (1-11) have different meanings depending on the specific country's geopolitical structure.
+
+As a general guideline:
+
+- **`admin_level=2`**: National borders (Country level).
+- **`admin_level=4`**: State / Province / Region level.
+- **`admin_level=6`**: County / District level.
+- **`admin_level=8`**: Municipality / City / Town level.
+
+**How to verify your exact level:**
+Because `admin_level` definitions shift from country to country (e.g., level 4 is a State in the US, but a Region in France), the best way to verify what a specific admin level returns is to test queries interactively on **[Overpass Turbo](https://overpass-turbo.eu/)**.
+
+You can run a query like this in Overpass Turbo to visualize the boundaries for a specific country before calling this API:
+
+```overpass
+[out:json];
+area["ISO3166-1"="ZW"]->.searchArea;
+(
+  relation["admin_level"="4"]["type"="boundary"]["boundary"="administrative"](area.searchArea);
+);
+out body;
+>;
+out skel qt;
+```
+
+**Further Reference:**
+For a comprehensive table mapping `admin_level` values to their specific meanings in every country globally, consult the **[OSM Wiki for admin_level](https://wiki.openstreetmap.org/wiki/Tag:boundary=administrative#10_admin_level_values_for_specific_countries)**.
+
 ## Local Development
 
 The project is structured as a standard Deno application using `deno.jsonc` and an `import_map.json`.
@@ -52,18 +82,40 @@ Cloud Run will automatically build the image and deploy updates every time you p
 
 ## API Usage
 
-### `POST /`
+The service provides two main endpoints:
+
+### 1. Healthcheck
+
+Provides a lightweight readiness probe for Cloud Run container monitoring.
+
+**Endpoint:** `GET /` or `GET /health`
+
+**Response:** HTTP 200 OK
+
+```json
+{
+  "status": "ok"
+}
+```
+
+---
+
+### 2. Generate Boundaries
+
+Fetches OSM relations, converts them to TopoJSON, and optimizes the file size.
+
+**Endpoint:** `POST /`
 
 **Request Body:**
 
 ```json
 {
-  "country_code": "MW",
-  "admin_level": 2
+  "country_code": "MW", // ISO 3166-1 alpha-2 code
+  "admin_level": 2 // OSM boundary admin_level (usually 2 for country, 4 for state)
 }
 ```
 
-**Response:**
+**Response:** HTTP 200 OK
 Returns a JSON object with boundary metadata and a parsed custom TopoJSON property.
 
 ```json
@@ -73,10 +125,12 @@ Returns a JSON object with boundary metadata and a parsed custom TopoJSON proper
   "admin_level": 2,
   "size_kb": 128,
   "feature_count": 1,
-  "bbox": [...],
+  "bbox": [ ... ],
   "topojson": {
     "type": "Topology",
-    ...
+    "objects": { ... },
+    "arcs": [ ... ],
+    "transform": { ... }
   }
 }
 ```
