@@ -44,6 +44,44 @@ Deno.test({
     );
 
     assertEquals(typeof data.size_kb, "number");
+    assertEquals(typeof data.size_kb, "number");
+  },
+  sanitizeOps: false,
+  sanitizeResources: false,
+});
+
+Deno.test({
+  name: "adminBoundaries - Successfully generates TopoJSON for MW Admin Layer 5 with clip",
+  async fn() {
+    // Ensure we don't leak ops or resources in tests
+    const req = new Request("http://localhost/", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ country_code: "MW", admin_level: 5 }),
+      // Create an AbortSignal since our fetch depends on req.signal
+      signal: AbortSignal.timeout(60000),
+    });
+
+    const res = await adminBoundaries(req);
+
+    // Assert successful 200 OK
+    assertEquals(res.status, 200);
+
+    const data = await res.json();
+    console.log("Returned payload keys:", Object.keys(data));
+
+    // Check that we got TopoJSON back
+    assertExists(data.topojson);
+    assertEquals(data.country_code, "MW");
+    assertEquals(data.admin_level, 5);
+    assertEquals(data.topojson.type, "Topology");
+    assertEquals(
+      data.feature_count > 0,
+      true,
+      "Feature count must be greater than zero",
+    );
   },
   sanitizeOps: false,
   sanitizeResources: false,

@@ -31,7 +31,7 @@ You can run a query like this in Overpass Turbo to visualize the boundaries for 
 [out:json];
 area["ISO3166-1"="ZW"]->.searchArea;
 (
-  relation["admin_level"="4"]["type"="boundary"]["boundary"="administrative"](area.searchArea);
+  relation["admin_level"="4"]["boundary"="administrative"]["ISO3166-2"~"^ZW-"](area.searchArea);
 );
 out body;
 >;
