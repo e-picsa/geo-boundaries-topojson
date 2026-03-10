@@ -225,7 +225,6 @@ function buildMapshaperInputsAndCommands(
     `-simplify weighting=0.5 10%`,
     `-filter-islands min-area=10km2`,
     `-each 'this.properties = { id: this.properties["@id"] || this.id, name: this.properties.name || "" }'`,
-    `-o output.topojson format=topojson quantization=1e3 bbox`,
   ];
 
   if (adminLevel === 5) {
@@ -248,6 +247,8 @@ function buildMapshaperInputsAndCommands(
 
     commands.push(`-clip mask.geojson`);
   }
+
+  commands.push(`-o output.topojson format=topojson quantization=1e3 bbox`);
 
   return { input, commands };
 }
