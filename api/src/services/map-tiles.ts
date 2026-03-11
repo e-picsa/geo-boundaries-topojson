@@ -20,10 +20,6 @@ interface ExportTilesParams {
 export async function exportTiles(params: ExportTilesParams): Promise<ReadableStream> {
   const { country_code, minZoom } = params;
 
-  if (!/^[a-zA-Z0-9-_]+$/.test(country_code)) {
-    throw new Error('Invalid country_code format');
-  }
-
   const maxZoom = Math.min(params.maxZoom, MAX_ZOOM);
 
   // Derive bbox from country boundary (admin_level 2)
