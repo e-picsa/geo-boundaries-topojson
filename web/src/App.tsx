@@ -1,11 +1,10 @@
-import  { useState } from 'react';
+import { useState } from 'react';
 import { MapContainer, TileLayer, GeoJSON, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import * as topojsonClient from 'topojson-client';
 import { CountrySelect } from './components/CountrySelect';
 import { AdminLevelSelect } from './components/AdminLevelSelect';
 import { BoundsFitter } from './components/BoundsFitter';
-
 
 interface BoundaryResponse {
   country_code: string;
@@ -17,8 +16,6 @@ interface BoundaryResponse {
   topojson: any;
 }
 
-
-
 function App() {
   const [countryCode, setCountryCode] = useState('MW');
   const [adminLevel, setAdminLevel] = useState<number>(2);
@@ -27,41 +24,40 @@ function App() {
   const [data, setData] = useState<BoundaryResponse | null>(null);
   const [geoJsonData, setGeoJsonData] = useState<any>(null);
 
-const API_URL = import.meta.env.VITE_API_URL || '/api';
+  const API_URL = import.meta.env.VITE_API_URL || '/api';
 
   const fetchBoundaries = async () => {
     setLoading(true);
     setError(null);
     setData(null);
     setGeoJsonData(null);
-    
+
     try {
       const res = await fetch(API_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ country_code: countryCode, admin_level: adminLevel })
+        body: JSON.stringify({ country_code: countryCode, admin_level: adminLevel }),
       });
-      
+
       if (!res.ok) {
         const errorData = await res.json();
         throw new Error(errorData.error || 'Failed to fetch boundaries');
       }
-      
+
       const payload: BoundaryResponse = await res.json();
       setData(payload);
-      
+
       // Convert TopoJSON to GeoJSON for Leaflet
       if (payload.topojson && payload.topojson.objects) {
         const objectKey = Object.keys(payload.topojson.objects)[0];
         if (objectKey) {
           const geojson = topojsonClient.feature(
-            payload.topojson, 
-            payload.topojson.objects[objectKey]
+            payload.topojson,
+            payload.topojson.objects[objectKey],
           );
           setGeoJsonData(geojson);
         }
       }
-      
     } catch (err: any) {
       if (err instanceof Error) {
         setError(err.message);
@@ -88,7 +84,6 @@ const API_URL = import.meta.env.VITE_API_URL || '/api';
 
   return (
     <div className="flex h-screen w-screen flex-col md:flex-row bg-slate-50">
-      
       {/* Sidebar Controls */}
       <div className="w-full md:w-80 bg-white border-r border-slate-200 p-6 flex flex-col gap-6 shadow-sm z-10 overflow-y-auto">
         <div>
@@ -125,14 +120,14 @@ const API_URL = import.meta.env.VITE_API_URL || '/api';
         {data && (
           <div className="flex flex-col gap-3 mt-4 pt-4 border-t border-slate-200">
             <h3 className="font-semibold text-slate-900 text-sm">Results Summary</h3>
-            
+
             <div className="grid grid-cols-2 gap-2 text-sm">
               <div className="text-slate-500">Source:</div>
               <div className="font-medium text-right capitalize">{data.source}</div>
-              
+
               <div className="text-slate-500">Features:</div>
               <div className="font-medium text-right">{data.feature_count}</div>
-              
+
               <div className="text-slate-500">Size:</div>
               <div className="font-medium text-right">{data.size_kb} KB</div>
             </div>
@@ -149,12 +144,7 @@ const API_URL = import.meta.env.VITE_API_URL || '/api';
 
       {/* Map Area */}
       <div className="flex-1 relative z-0">
-        <MapContainer 
-          center={[0, 0]} 
-          zoom={2} 
-          scrollWheelZoom={true}
-          className="h-full w-full"
-        >
+        <MapContainer center={[0, 0]} zoom={2} scrollWheelZoom={true} className="h-full w-full">
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -162,12 +152,22 @@ const API_URL = import.meta.env.VITE_API_URL || '/api';
           {geoJsonData && (
             <>
               {/* Force GeoJSON re-render by using a different key when data changes */}
-              <GeoJSON key={JSON.stringify(geoJsonData).slice(0, 100)} data={geoJsonData} style={{ color: '#4f46e5', weight: 2, opacity: 0.8, fillColor: '#818cf8', fillOpacity: 0.2 }} />
+              <GeoJSON
+                key={JSON.stringify(geoJsonData).slice(0, 100)}
+                data={geoJsonData}
+                style={{
+                  color: '#4f46e5',
+                  weight: 2,
+                  opacity: 0.8,
+                  fillColor: '#818cf8',
+                  fillOpacity: 0.2,
+                }}
+              />
               <BoundsFitter geoJsonData={geoJsonData} />
             </>
           )}
         </MapContainer>
-        
+
         {/* Loading overlay for Map */}
         {loading && (
           <div className="absolute inset-0 bg-white/50 backdrop-blur-sm z-[400] flex items-center justify-center">
@@ -178,7 +178,6 @@ const API_URL = import.meta.env.VITE_API_URL || '/api';
           </div>
         )}
       </div>
-
     </div>
   );
 }
