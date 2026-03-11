@@ -1,7 +1,7 @@
 {
   "name": "geo-data",
   "version": "1.0.0",
-  "description": "A Bun monorepo that fetches country administrative boundaries from the Overpass API, optimizes geometries via Mapshaper, and returns lightweight TopoJSON payloads. Includes a React frontend for interactive boundary exploration.",
+  "description": "Monorepo for managing Geo data within the E-PICSA App",
   "main": "index.js",
   "scripts": {
     "start": "bun run --filter '*' start",

@@ -1,6 +1,6 @@
-# Admin Boundaries TopoJSON Generator
+# PICSA Geo Data
 
-A Bun monorepo that fetches country administrative boundaries from the Overpass API, optimizes geometries via Mapshaper, and returns lightweight TopoJSON payloads. Includes a React frontend for interactive boundary exploration.
+A bun monorepo for managing Geo data within the E-PICSA App
 
 ## Architecture
 
