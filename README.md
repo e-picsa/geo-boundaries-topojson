@@ -97,7 +97,7 @@ The easiest way to deploy is through the Google Cloud Run Console using **Develo
 5. Set environment variables (`OVERPASS_CACHE_BUCKET`, etc.) as needed.
 6. Cloud Run will automatically build and deploy on every push to your selected branch.
 
-The API is currently deployed at `https://geo-boundaries.picsa.app`.
+The API is currently deployed at `https://geo-data.picsa.app`.
 
 ## GitHub Pages Deployment (Frontend)
 

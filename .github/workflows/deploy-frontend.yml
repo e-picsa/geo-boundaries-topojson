@@ -33,7 +33,7 @@ jobs:
 
       - name: Build frontend
         env:
-          VITE_API_URL: https://geo-boundaries.picsa.app
+          VITE_API_URL: https://geo-data-api.picsa.app
         run: bun run --filter 'web' build
 
       - name: Upload Pages artifact
