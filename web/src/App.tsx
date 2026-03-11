@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { TrashIcon } from '@heroicons/react/24/outline';
 import { MapContainer, TileLayer, GeoJSON, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import * as topojsonClient from 'topojson-client';

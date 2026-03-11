@@ -1,9 +1,10 @@
 import { useEffect } from 'react';
 import { useMap } from 'react-leaflet';
 import L from 'leaflet';
+import { GeoJsonObject } from 'geojson';
 
 export interface BoundsFitterProps {
-  geoJsonData: any;
+  geoJsonData: GeoJsonObject;
 }
 
 export function BoundsFitter({ geoJsonData }: BoundsFitterProps) {
