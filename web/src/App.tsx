@@ -5,6 +5,7 @@ import * as topojsonClient from 'topojson-client';
 import { CountrySelect } from './components/CountrySelect';
 import { AdminLevelSelect } from './components/AdminLevelSelect';
 import { BoundsFitter } from './components/BoundsFitter';
+import { TrashIcon } from '@heroicons/react/20/solid';
 
 interface BoundaryResponse {
   country_code: string;
