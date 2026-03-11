@@ -1,8 +1,19 @@
 import { corsHeaders } from '../utils/cors.ts';
 import { fetchWithRetry } from '../utils/fetch.ts';
+import { getCache } from '../utils/cache.ts';
 import { OVERPASS_QUERY_MAPPING } from './overpass-mapping.ts';
 
 export { OVERPASS_QUERY_MAPPING };
+
+/**
+ * Bust cache if query or processing methods change.
+ * GCS cache object lifecycle automatically deletes after 90 days.
+ */
+const CACHE_VERSION = 1;
+
+function overpassCacheKey(countryCode: string, adminLevel: number): string {
+  return `overpass/v${CACHE_VERSION}/country=${countryCode}/admin_level=${adminLevel}/overpass.json`;
+}
 
 /**
  * Build an Overpass QL query string for the given country and admin level.
@@ -16,17 +27,30 @@ export function buildOverpassQuery(countryCode: string, adminLevel: number): str
 }
 
 /**
- * POST a query to the Overpass API and return the parsed JSON response.
+ * Fetch Overpass data for a given country and admin level.
  *
- * Accepts an AbortSignal (rather than a full Request) so it can be reused
- * outside of HTTP request handlers.
+ * This is **cache-through**: it checks the cache first and only hits the
+ * Overpass API on a miss. Successful API responses are written back to
+ * the cache automatically.
  */
 export async function fetchOverpassData(
   signal: AbortSignal,
-  overpassQuery: string,
   countryCode: string,
+  adminLevel: number,
 ): Promise<unknown> {
-  console.log(`Fetching Overpass data for ${countryCode}...`);
+  const cache = getCache();
+  const cacheKey = overpassCacheKey(countryCode, adminLevel);
+
+  // Check cache first
+  const cached = await cache.get(cacheKey);
+  if (cached) {
+    console.log(`Overpass cache hit for ${countryCode} admin level ${adminLevel}.`);
+    return cached;
+  }
+
+  // Cache miss — query the API
+  const overpassQuery = buildOverpassQuery(countryCode, adminLevel);
+  console.log(`Fetching Overpass data for ${countryCode} admin level ${adminLevel}...`);
 
   const overpassResponse = await fetchWithRetry('https://overpass-api.de/api/interpreter', {
     method: 'POST',
@@ -81,6 +105,11 @@ export async function fetchOverpassData(
     `Received ${osmData?.elements?.length || 0} elements from Overpass for ${countryCode}`,
   );
 
+  // Write to cache (fire-and-forget)
+  cache.set(cacheKey, osmData).catch((err) => {
+    console.error(`Non-fatal error saving Overpass cache for "${cacheKey}":`, err);
+  });
+
   return osmData;
 }
 
@@ -96,12 +125,7 @@ export async function getBboxForCountry(
   countryCode: string,
   signal?: AbortSignal,
 ): Promise<[number, number, number, number]> {
-  const query = buildOverpassQuery(countryCode, 2);
-  const osmData = await fetchOverpassData(
-    signal ?? AbortSignal.timeout(30_000),
-    query,
-    countryCode,
-  );
+  const osmData = await fetchOverpassData(signal ?? AbortSignal.timeout(30_000), countryCode, 2);
 
   const elements = (osmData as any)?.elements;
   if (!Array.isArray(elements) || elements.length === 0) {

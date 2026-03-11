@@ -6,19 +6,21 @@ import { validateBody } from '../utils/validation.ts';
 import { getCache, type CacheProvider } from '../utils/cache.ts';
 import { BOUNDARY_REQUEST_SCHEMA } from '../types/schema.ts';
 import type { BoundaryRequestParams } from '../types/schema.ts';
-import { buildOverpassQuery, fetchOverpassData } from './overpass.ts';
+import { fetchOverpassData } from './overpass.ts';
 
 /**
- * Bust cache if query or processing methods change.
- * GCS cache object lifecycle automatically deletes after 90 days
+ * Bust cache if conversion or processing methods change.
+ * GCS cache object lifecycle automatically deletes after 90 days.
+ *
+ * NOTE: The raw Overpass response cache version lives in overpass.ts.
+ * This version only covers the derived geojson/topojson artefacts.
  */
 const CACHE_VERSION = 1;
 
-type Source = 'cache' | 'overpass';
+type Source = 'cache' | 'generated';
 
 type CachePaths = {
   prefix: string;
-  overpass: string;
   geojson: string;
   topojson: string;
 };
@@ -43,24 +45,15 @@ export const adminBoundaries = async (req: Request) => {
       return buildSuccessResponse(params, 'cache', cachedTopojson);
     }
 
-    const overpassQuery = buildOverpassQuery(country_code, admin_level);
-
-    let osmData = await readCache<any>(cache, paths.overpass);
-    let source: Source = 'cache';
-
-    if (osmData) {
-      console.log(`Overpass cache hit for ${country_code} admin level ${admin_level}.`);
-    } else {
-      source = 'overpass';
-      osmData = await fetchOverpassData(req.signal, overpassQuery, country_code);
-      writeCache(cache, paths.overpass, osmData);
-    }
+    // fetchOverpassData is cache-through — it reads/writes the Overpass
+    // response cache internally, so we don't manage it here.
+    const osmData = await fetchOverpassData(req.signal, country_code, admin_level);
 
     const topojson = await convertOsmToTopojson(osmData, admin_level, cache, paths);
 
     writeCache(cache, paths.topojson, topojson);
 
-    return buildSuccessResponse(params, source, topojson);
+    return buildSuccessResponse(params, 'generated', topojson);
   } catch (error) {
     if (error instanceof Response) {
       return error;
@@ -79,11 +72,10 @@ export const adminBoundaries = async (req: Request) => {
 };
 
 function buildCachePaths(countryCode: string, adminLevel: number): CachePaths {
-  const prefix = `overpass/v${CACHE_VERSION}/country=${countryCode}/admin_level=${adminLevel}`;
+  const prefix = `derived/v${CACHE_VERSION}/country=${countryCode}/admin_level=${adminLevel}`;
 
   return {
     prefix,
-    overpass: `${prefix}/overpass.json`,
     geojson: `${prefix}/geojson.json`,
     topojson: `${prefix}/topojson.json`,
   };
