@@ -2,6 +2,8 @@
 
 A bun monorepo for managing Geo data within the E-PICSA App
 
+![](./home-screen.png)
+
 ## Architecture
 
 | Component        | Stack                       | Deployment                  |
@@ -43,12 +45,11 @@ This service extracts boundary data from OpenStreetMap (OSM) using the `admin_le
 As a general guideline:
 
 - **`admin_level=2`**: National borders (Country level).
-- **`admin_level=4`**: State / Province / Region level.
-- **`admin_level=6`**: County / District level.
-- **`admin_level=8`**: Municipality / City / Town level.
+- **`admin_level=3`**: First-level subnational divisions (e.g., states, provinces, regions — used in some countries).
+- **`admin_level=4`**: First-level subnational divisions (e.g., states, provinces, regions — most common level for this).
+- **`admin_level=5`**: Second-level subnational divisions (e.g., counties, districts, departments).
 
-**How to verify your exact level:**
-Because `admin_level` definitions shift from country to country, the best way to verify what a specific admin level returns is to test queries interactively on **[Overpass Turbo](https://overpass-turbo.eu/)**.
+The API does not currently support levels greater than 5, as these are not used within the E-PICSA app.
 
 **Further Reference:**
 [OSM Wiki for admin_level](https://wiki.openstreetmap.org/wiki/Tag:boundary=administrative#10_admin_level_values_for_specific_countries).
@@ -62,11 +63,7 @@ Prerequisites: [Bun](https://bun.sh/) installed. The API uses `sharp` for conver
 bun install
 
 # Run both API and frontend concurrently
-npm run start
-
-# Or run individually
-npm run start:api   # API on http://localhost:8080
-npm run start:web   # Frontend on http://localhost:5173 (proxies /api → :8080)
+bun start
 ```
 
 The Vite dev server proxies `/api` requests to the Bun API at `localhost:8080`, so the frontend works seamlessly in development without CORS issues.
@@ -77,10 +74,10 @@ The API is containerized via Docker for deployment to Google Cloud Run.
 
 ```bash
 # Build the Docker image
-docker build -t admin-boundaries-topojson .
+docker build -t epicsa-geo-api .
 
 # Run locally
-docker run -p 8080:8080 admin-boundaries-topojson
+docker run --rm -p 8080:8080 epicsa-geo-api
 
 # Test the health endpoint
 curl http://localhost:8080/health
@@ -97,7 +94,7 @@ The easiest way to deploy is through the Google Cloud Run Console using **Develo
 5. Set environment variables (`OVERPASS_CACHE_BUCKET`, etc.) as needed.
 6. Cloud Run will automatically build and deploy on every push to your selected branch.
 
-The API is currently deployed at `https://geo-data.picsa.app`.
+The API is currently deployed at `https://geo-data-api.picsa.app`.
 
 ## GitHub Pages Deployment (Frontend)
 
@@ -112,7 +109,7 @@ The frontend is deployed automatically to GitHub Pages via the `.github/workflow
 **Custom Domain Setup:**
 
 1. In your GitHub repo, go to **Settings → Pages**.
-2. Under **Custom domain**, enter your subdomain (e.g., `geo.picsa.app`).
+2. Under **Custom domain**, enter your subdomain (e.g., `geo-data.picsa.app`).
 3. Add a `CNAME` DNS record pointing your subdomain to `e-picsa.github.io`.
 4. Enable **Enforce HTTPS**.
 
@@ -145,17 +142,20 @@ The frontend is deployed automatically to GitHub Pages via the `.github/workflow
 
 ```json
 {
-  "message": "Boundary data retrieved successfully",
   "country_code": "MW",
   "admin_level": 2,
+  "source": "generated",
   "size_kb": 128,
   "feature_count": 1,
-  "bbox": [ ... ],
+  "bbox": [32.668, -17.129, 35.92, -9.364],
   "topojson": { ... }
 }
 ```
 
 ### 3. Clear Cache
+
+> [!NOTE]
+> This endpoint is only available when `NODE_ENV=development`.
 
 **Endpoint:** `POST /admin/clear-cache`
 
@@ -174,7 +174,6 @@ The frontend is deployed automatically to GitHub Pages via the `.github/workflow
 ```json
 {
   "country_code": "MW",
-  "bbox": [32.668, -17.129, 35.92, -9.364],
   "minZoom": 0,
   "maxZoom": 8
 }
@@ -182,3 +181,6 @@ The frontend is deployed automatically to GitHub Pages via the `.github/workflow
 
 **Response:** HTTP 200 OK
 Returns a binary blob stream `Content-Type: application/gzip` representing a `.tar.gz` archive of downloaded and converted WebP tiles.
+
+> [!IMPORTANT]
+> The `maxZoom` parameter is restricted to a maximum value of 8 to prevent abuse and respect OSM tile usage policies.
